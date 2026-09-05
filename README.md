@@ -1,6 +1,6 @@
 # Fleet Management Backend
 
-Backend implementation for the Peppermint Robotics Fleet Management Dashboard hiring challenge.
+Backend implementation for the Fleet Management Dashboard.
 
 ---
 
