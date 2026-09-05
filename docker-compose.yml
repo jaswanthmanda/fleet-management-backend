@@ -1,0 +1,66 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    platform: linux/amd64
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mosquitto_sub -h localhost -t '$$SYS/broker/uptime' -C 1 -W 2",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    platform: linux/amd64
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      MQTT_HOST: broker
+      MQTT_PORT: 1883
+      ROSTER_PATH: /app/data/robots.json
+
+    volumes:
+      - ./data:/app/data:ro
+
+    depends_on:
+      broker:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+  simulator:
+    build:
+      context: ./simulator
+    platform: linux/amd64
+
+    environment:
+      MQTT_HOST: broker
+      MQTT_PORT: 1883
+
+      EVENTS_PATH: /app/data/events.jsonl
+      ROBOTS_PATH: /app/data/robots.json
+
+      # 10x faster than real recorded pace
+      PLAYBACK_SPEED: 10
+
+      # Replay continuously
+      LOOP_PLAYBACK: "true"
+
+    volumes:
+      - ./data:/app/data:ro
+
+    depends_on:
+      broker:
+        condition: service_healthy
+
+    restart: unless-stopped
